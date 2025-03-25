@@ -1,22 +1,21 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
-import { ExcelData, updateCellValue, exportToExcel, changeActiveSheet } from '@/utils/excelUtils';
+import { updateCellValue, changeActiveSheet, exportExcelFile } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { Download, Save } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { ThemeProvider, createTheme } from '@mui/material';
+import { ApiExcelData } from '@/services/api';
 
 interface SpreadsheetEditorProps {
-  excelData: ExcelData;
-  fileName: string;
-  onDataChange: (newData: ExcelData) => void;
+  excelData: ApiExcelData;
+  onDataChange: (newData: ApiExcelData) => void;
 }
 
 const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   excelData,
-  fileName,
   onDataChange,
 }) => {
   const [activeSheet, setActiveSheet] = useState<string>(excelData.activeSheet);
@@ -29,7 +28,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         main: 'hsl(200, 70%, 50%)',
       },
       background: {
-        default: '#ffffff00', // Using rgba with 0 alpha instead of 'transparent'
+        default: '#ffffff00', // Using rgba with 0 alpha
       },
     },
     typography: {
@@ -47,7 +46,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       MuiPaper: {
         styleOverrides: {
           root: {
-            backgroundColor: '#ffffff00', // Using rgba with 0 alpha instead of 'transparent'
+            backgroundColor: '#ffffff00', // Using rgba with 0 alpha
             backgroundImage: 'none',
             boxShadow: 'none',
           },
@@ -119,37 +118,65 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
 
   // Handle cell edit
   const handleCellEdit = useCallback(
-    (rowIndex: number, columnId: string, value: any) => {
-      const columnIndex = parseInt(columnId);
-      const newData = updateCellValue(excelData, rowIndex, columnIndex, value);
-      onDataChange(newData);
+    async (rowIndex: number, columnId: string, value: any) => {
+      try {
+        const columnIndex = parseInt(columnId);
+        const updatedData = await updateCellValue(excelData.fileId, rowIndex, columnIndex, value);
+        onDataChange(updatedData);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update cell value",
+          variant: "destructive"
+        });
+      }
     },
-    [excelData, onDataChange]
+    [excelData.fileId, onDataChange]
   );
 
   // Handle export
   const handleExport = () => {
-    exportToExcel(excelData, fileName);
+    try {
+      exportExcelFile(excelData.fileId);
+      toast({
+        title: "Success",
+        description: "File export started"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export file",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle sheet change
-  const handleSheetChange = (sheetName: string) => {
+  const handleSheetChange = async (sheetName: string) => {
     if (sheetName === activeSheet) return;
     
-    setActiveSheet(sheetName);
-    const updatedData = changeActiveSheet(excelData, sheetName);
-    onDataChange(updatedData);
-    
-    toast({
-      title: 'Sheet changed',
-      description: `Switched to ${sheetName}`,
-    });
+    try {
+      setActiveSheet(sheetName);
+      const updatedData = await changeActiveSheet(excelData.fileId, sheetName);
+      onDataChange(updatedData);
+      
+      toast({
+        title: 'Sheet changed',
+        description: `Switched to ${sheetName}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to change sheet",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
     <div className="w-full h-full flex flex-col gap-4 bg-card/30 backdrop-blur-xs rounded-xl border border-border/50 shadow-card animate-scale-in overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <h2 className="text-lg font-medium">{fileName}</h2>
+        <h2 className="text-lg font-medium">{excelData.fileName}</h2>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -206,7 +233,11 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             }}
             onEditingRowSave={({ row, values }) => {
               Object.entries(values).forEach(([columnId, value]) => {
-                handleCellEdit(row.index, columnId, value);
+                handleCellEdit(
+                  row.index,
+                  columnId,
+                  value
+                );
               });
             }}
             muiEditTextFieldProps={({ cell }) => ({

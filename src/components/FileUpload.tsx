@@ -4,15 +4,16 @@ import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
 import { ArrowUp, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { uploadExcelFile } from '@/services/api';
 
 interface FileUploadProps {
-  onFileLoaded: (file: File) => void;
+  onFileLoaded: (file: File, apiData: any) => void;
   isLoading?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, isLoading = false }) => {
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return;
       
       const file = acceptedFiles[0];
@@ -33,7 +34,16 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, isLoading = false
         return;
       }
       
-      onFileLoaded(file);
+      try {
+        const apiData = await uploadExcelFile(file);
+        onFileLoaded(file, apiData);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to upload the file. Please try again.',
+          variant: 'destructive',
+        });
+      }
     },
     [onFileLoaded]
   );
