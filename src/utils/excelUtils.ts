@@ -7,6 +7,10 @@ export interface ExcelData {
   data: any[][];
   sheetNames: string[];
   activeSheet: string;
+  sheets: Record<string, {
+    headers: string[];
+    data: any[][];
+  }>;
 }
 
 /**
@@ -20,18 +24,37 @@ export const parseExcelFile = async (file: File): Promise<ExcelData | null> => {
     }
 
     const activeSheet = data.SheetNames[0];
-    const workSheet = data.Sheets[activeSheet];
-    const jsonData = XLSX.utils.sheet_to_json(workSheet, { header: 1 });
+    const sheets: Record<string, { headers: string[]; data: any[][] }> = {};
     
-    // Extract headers (first row) and the rest of the data
-    const headers = jsonData[0] as string[];
-    const rows = jsonData.slice(1) as any[][];
+    // Process all sheets
+    for (const sheetName of data.SheetNames) {
+      const workSheet = data.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(workSheet, { header: 1 });
+      
+      if (jsonData.length > 0) {
+        // Extract headers (first row) and the rest of the data
+        const headers = jsonData[0] as string[] || [];
+        const rows = jsonData.slice(1) as any[][] || [];
+        
+        sheets[sheetName] = {
+          headers,
+          data: rows
+        };
+      } else {
+        // Handle empty sheets
+        sheets[sheetName] = {
+          headers: [],
+          data: []
+        };
+      }
+    }
     
     return {
-      headers,
-      data: rows,
+      headers: sheets[activeSheet]?.headers || [],
+      data: sheets[activeSheet]?.data || [],
       sheetNames: data.SheetNames,
       activeSheet,
+      sheets
     };
   } catch (error) {
     console.error('Error parsing Excel file:', error);
@@ -74,11 +97,20 @@ export const exportToExcel = (data: ExcelData, fileName: string = 'spreadsheet-e
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
     
-    // For the active sheet, create a worksheet from the data
-    const worksheet = XLSX.utils.aoa_to_sheet([data.headers, ...data.data]);
-    
-    // Add the worksheet to the workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, data.activeSheet);
+    // Add each sheet to the workbook
+    for (const sheetName of data.sheetNames) {
+      const sheetData = sheetName === data.activeSheet 
+        ? { headers: data.headers, data: data.data } 
+        : data.sheets[sheetName];
+      
+      if (sheetData) {
+        // Create a worksheet from the data
+        const worksheet = XLSX.utils.aoa_to_sheet([sheetData.headers, ...sheetData.data]);
+        
+        // Add the worksheet to the workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      }
+    }
     
     // Write the workbook and save the file
     XLSX.writeFile(workbook, fileName);
@@ -95,6 +127,37 @@ export const exportToExcel = (data: ExcelData, fileName: string = 'spreadsheet-e
       variant: 'destructive',
     });
   }
+};
+
+/**
+ * Change active sheet and load its data
+ */
+export const changeActiveSheet = (data: ExcelData, sheetName: string): ExcelData => {
+  if (!data.sheetNames.includes(sheetName)) {
+    return data;
+  }
+  
+  // Save current sheet's data
+  const currentSheetData = {
+    headers: data.headers,
+    data: data.data
+  };
+  
+  const updatedSheets = {
+    ...data.sheets,
+    [data.activeSheet]: currentSheetData
+  };
+  
+  // Load selected sheet's data
+  const newSheetData = updatedSheets[sheetName];
+  
+  return {
+    ...data,
+    headers: newSheetData.headers,
+    data: newSheetData.data,
+    activeSheet: sheetName,
+    sheets: updatedSheets
+  };
 };
 
 /**
@@ -116,8 +179,19 @@ export const updateCellValue = (
   // Update the value
   newData[rowIndex][columnIndex] = value;
   
+  // Update the sheets object with the modified data
+  const updatedSheets = {
+    ...data.sheets,
+    [data.activeSheet]: {
+      headers: data.headers,
+      data: newData
+    }
+  };
+  
   return {
     ...data,
     data: newData,
+    sheets: updatedSheets
   };
 };
+

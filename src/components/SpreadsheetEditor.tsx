@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
-import { ExcelData, updateCellValue, exportToExcel } from '@/utils/excelUtils';
+import { ExcelData, updateCellValue, exportToExcel, changeActiveSheet } from '@/utils/excelUtils';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
@@ -106,7 +106,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       }));
       setColumns(tableColumns);
     }
-  }, [excelData]);
+  }, [excelData.headers]);
 
   // Transform the data for the table
   const tableData = excelData.data.map((row, rowIdx) => {
@@ -134,10 +134,15 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
 
   // Handle sheet change
   const handleSheetChange = (sheetName: string) => {
+    if (sheetName === activeSheet) return;
+    
     setActiveSheet(sheetName);
+    const updatedData = changeActiveSheet(excelData, sheetName);
+    onDataChange(updatedData);
+    
     toast({
       title: 'Sheet changed',
-      description: `Switched to ${sheetName}. Note: Multi-sheet editing is not supported in this version.`,
+      description: `Switched to ${sheetName}`,
     });
   };
 
@@ -160,7 +165,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
 
       {excelData.sheetNames.length > 1 && (
         <div className="px-4">
-          <Tabs defaultValue={activeSheet} onValueChange={handleSheetChange}>
+          <Tabs defaultValue={activeSheet} value={activeSheet} onValueChange={handleSheetChange}>
             <TabsList className="w-full h-10 overflow-x-auto max-w-full flex-nowrap">
               {excelData.sheetNames.map((sheet) => (
                 <TabsTrigger
@@ -213,6 +218,9 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                 );
               },
             })}
+            state={{ 
+              density: 'compact'
+            }}
           />
         </ThemeProvider>
       </div>
