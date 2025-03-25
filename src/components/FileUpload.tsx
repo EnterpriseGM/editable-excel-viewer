@@ -52,7 +52,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, isLoading = false
     <div
       {...getRootProps()}
       className={cn(
-        'w-full h-60 flex flex-col items-center justify-center rounded-xl p-6 transition-all cursor-pointer',
+        'w-full h-60 flex flex-col items-center justify-center rounded-xl p-6 custom-transition cursor-pointer',
         'border-2 border-dashed border-primary/30 hover:border-primary/60',
         'bg-accent/50 hover:bg-accent/80 backdrop-blur-xs',
         'animate-fade-in duration-300 ease-out',
@@ -72,7 +72,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileLoaded, isLoading = false
           </>
         ) : (
           <>
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 custom-transition">
               <FileSpreadsheet className="w-8 h-8 text-primary" />
             </div>
             <p className="text-lg font-medium">Drag & drop your Excel file</p>

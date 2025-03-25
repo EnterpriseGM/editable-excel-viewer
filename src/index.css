@@ -126,8 +126,8 @@
   }
 
   /* Transition utilities */
-  .transition-all {
-    @apply transition-all duration-200 ease-in-out;
+  .custom-transition {
+    transition: all 0.2s ease-in-out;
   }
 
   /* Glass effect */

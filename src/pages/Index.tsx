@@ -58,7 +58,7 @@ const Index = () => {
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setExcelData(null)}
-                  className="text-sm text-primary hover:underline transition-all"
+                  className="text-sm text-primary hover:underline custom-transition"
                 >
                   ← Upload another file
                 </button>
