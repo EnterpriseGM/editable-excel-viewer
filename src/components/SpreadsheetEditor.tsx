@@ -29,7 +29,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         main: 'hsl(200, 70%, 50%)',
       },
       background: {
-        default: 'transparent',
+        default: '#ffffff00', // Using rgba with 0 alpha instead of 'transparent'
       },
     },
     typography: {
@@ -47,7 +47,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       MuiPaper: {
         styleOverrides: {
           root: {
-            backgroundColor: 'transparent',
+            backgroundColor: '#ffffff00', // Using rgba with 0 alpha instead of 'transparent'
             backgroundImage: 'none',
             boxShadow: 'none',
           },
@@ -93,15 +93,15 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   // Setup columns based on headers
   useEffect(() => {
     if (excelData && excelData.headers) {
-      const tableColumns = excelData.headers.map((header, index) => ({
+      const tableColumns: MRT_ColumnDef<any>[] = excelData.headers.map((header, index) => ({
         accessorKey: index.toString(),
         header: header || `Column ${index + 1}`,
         size: 180,
         muiTableHeadCellProps: {
-          align: 'left',
+          align: 'left' as 'left',
         },
         muiTableBodyCellProps: {
-          align: 'left',
+          align: 'left' as 'left',
         },
       }));
       setColumns(tableColumns);
@@ -188,7 +188,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             enableTopToolbar={false}
             enableColumnResizing
             enableEditing
-            editingMode="cell"
             muiTableProps={{
               sx: {
                 tableLayout: 'fixed',
